@@ -1,0 +1,27 @@
+%Implemented by 
+	David Riff
+	Diego Hamilton
+If signal, out = rising_edge;
+If not signal, out = falling_edge;
+%
+
+SUBDESIGN edge_detector
+(
+	signal		:	INPUT;
+	clk			:	INPUT;
+	out	:	OUTPUT;
+)
+
+VARIABLE
+	edge_ff[1..0]	:	DFF;
+BEGIN
+	edge_ff[].clk	= clk;
+	edge_ff[0].d	= signal;
+	edge_ff[1].d	= edge_ff[0].q;
+	
+	IF ((edge_ff[1].q  == GND) AND (edge_ff[0].q == VCC)) THEN
+		out = VCC;
+	ELSE
+		out = GND;
+	END IF;
+END;

@@ -1,0 +1,170 @@
+INCLUDE "updown.inc";
+INCLUDE "jogo_quiz.inc";
+INCLUDE "debounce.inc";
+INCLUDE "edge_detector.inc";
+
+SUBDESIGN controle_jogo
+(
+	clk				:	INPUT;
+	button[3..0]	:	INPUT;
+	out[3..0]		:	OUTPUT;
+	state[2..0]		:	OUTPUT;
+	pressed[3..0]	:	OUTPUT
+)
+
+VARIABLE
+	ss						:	MACHINE WITH STATES (s0, s1, s2, s3, s4, s5);
+	contador				:	updown;
+	jogo					:	jogo_quiz;
+	rising_edge[1..0]	:	edge_detector;
+	deb[3..0]			:	debounce;
+	deb_button[3..0]	:	NODE;
+	contagem[3..0]		:	NODE;
+
+BEGIN
+	rising_edge[].clk = clk;
+	ss.clk = clk;
+	contador.clk = clk;
+	jogo.clk = clk;
+	deb[].clk = clk;
+	deb[].button = button[];
+	deb_button[] = NOT(deb[].result);
+	jogo.button[] = deb_button[];
+	
+	rising_edge[0].signal = deb_button[0];
+	rising_edge[1].signal = deb_button[1];
+	
+	FOR i IN 0 TO 3 GENERATE
+      contagem[i] = LCELL(contador.q[i]);
+   END GENERATE;
+	
+	CASE ss IS
+		WHEN s0 =>
+			state[0] = GND;
+			state[1] = GND;
+			state[2] = GND;
+			contador.ena = VCC;
+			out[] = contagem[];
+			jogo.valid_time = GND;
+			pressed[] = 0;
+			jogo.rstn = VCC;
+			contador.rstn = VCC;
+			ss.reset = GND;
+			
+			IF contador.timeup[0] == VCC AND contador.timeup[1] == GND THEN
+				ss = s1;
+			END IF;
+			
+		WHEN s1 =>
+			state[0] = VCC;
+			state[1] = GND;
+			state[2] = GND; 
+			contador.ena = VCC;
+			out[] = contagem[];
+			pressed[] = 0;
+			jogo.rstn = VCC;
+			jogo.valid_time = VCC;
+			contador.rstn = VCC;
+			ss.reset = GND;
+			
+			IF contador.timeup[1] == VCC AND contador.timeup[0] == VCC THEN
+				ss = s2;
+			END IF;
+			
+		WHEN s2 =>
+			state[0] = GND;
+			state[1] = VCC;
+			state[2] = GND;
+			contador.ena = GND;
+			out[] = jogo.primeiro[];
+			jogo.valid_time = GND;
+			
+			pressed[] = jogo.primeiro[] + jogo.segundo[] + jogo.terceiro[] + jogo.quarto[];
+			
+			IF rising_edge[1].out == VCC THEN
+				jogo.rstn = GND;
+				contador.rstn = GND;
+				ss.reset = VCC;
+			ELSE
+				ss.reset = GND;
+				jogo.rstn = VCC;
+				contador.rstn = VCC;
+			END IF;
+			
+			IF rising_edge[0].out == VCC THEN
+				ss = s3;
+			END IF;
+			
+		WHEN s3 =>
+			state[0] = VCC;
+			state[1] = VCC;
+			state[2] = GND;
+			contador.ena = GND;
+			out[] = jogo.segundo[];
+			jogo.valid_time = GND;
+			
+			pressed[] = jogo.primeiro[] + jogo.segundo[] + jogo.terceiro[] + jogo.quarto[];
+			
+			IF rising_edge[1].out == VCC THEN
+				jogo.rstn = GND;
+				contador.rstn = GND;
+				ss.reset = VCC;
+			ELSE
+				ss.reset = GND;
+				jogo.rstn = VCC;
+				contador.rstn = VCC;
+			END IF;
+			
+			IF rising_edge[0].out == VCC THEN
+				ss = s4;
+			END IF;
+			
+		WHEN s4 =>
+			state[0] = GND;
+			state[1] = GND;
+			state[2] = VCC;
+			contador.ena = GND;
+			out[] = jogo.terceiro[];
+			jogo.valid_time = GND;
+			
+			pressed[] = jogo.primeiro[] + jogo.segundo[] + jogo.terceiro[] + jogo.quarto[];
+			
+			IF rising_edge[1].out == VCC THEN
+				jogo.rstn = GND;
+				contador.rstn = GND;
+				ss.reset = VCC;
+			ELSE
+				ss.reset = GND;
+				jogo.rstn = VCC;
+				contador.rstn = VCC;
+			END IF;
+			
+			IF rising_edge[0].out == VCC THEN
+				ss = s5;
+			END IF;
+			
+		WHEN s5 =>
+			state[0] = VCC;
+			state[1] = GND;
+			state[2] = VCC;
+			contador.ena = GND;
+			out[] = jogo.quarto[];
+			jogo.valid_time = GND;
+			
+			pressed[] = jogo.primeiro[] + jogo.segundo[] + jogo.terceiro[] + jogo.quarto[];
+			
+			IF rising_edge[1].out == VCC THEN
+				jogo.rstn = GND;
+				contador.rstn = GND;
+				ss.reset = VCC;
+			ELSE
+				ss.reset = GND;
+				jogo.rstn = VCC;
+				contador.rstn = VCC;
+			END IF;
+			
+			IF rising_edge[0].out == VCC THEN
+				ss = s2;
+			END IF;
+		END CASE;
+END;

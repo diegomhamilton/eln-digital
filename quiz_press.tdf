@@ -1,0 +1,44 @@
+INCLUDE "lpm_counter.inc";
+
+SUBDESIGN quiz_press
+(
+	clk, block			:	INPUT;
+	button				:	INPUT;
+	valid_time			:	INPUT;
+	rstn					:	INPUT=VCC;
+	pressed				:	OUTPUT;
+	valid_press			:	OUTPUT
+)
+
+VARIABLE
+	valid_press_dff	:	DFFE;
+	ss: MACHINE WITH STATES (s0, s1, s2, s3);
+	nblock: NODE;
+BEGIN
+	IF (rstn == GND) THEN
+		ss.reset = VCC;
+	ELSE
+		ss.reset = GND;
+	END IF;
+	
+	nblock = not block;
+	ss.clk = clk;
+   
+	valid_press_dff.ena = VCC;
+	valid_press_dff.clk = clk;
+	
+	CASE ss IS
+      WHEN s0 =>
+			pressed = GND;
+			valid_press = GND;
+         IF button and valid_time and nblock THEN
+				valid_press_dff.d = VCC;
+				ss = s1;
+         END IF;
+      WHEN s1 =>
+			pressed = VCC;
+         valid_press = GND;
+   END CASE;
+	
+	valid_press = valid_press_dff.q;
+END;

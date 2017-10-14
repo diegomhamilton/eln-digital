@@ -1,0 +1,53 @@
+SUBDESIGN quiz_row
+(
+	clk					:	INPUT;
+	ena					:	INPUT;
+	rstn					:	INPUT;
+	valid_press[3..0]	:	INPUT;
+	q[3..0]				:	OUTPUT;
+	press					:	OUTPUT
+)
+
+VARIABLE
+ss	:	MACHINE WITH STATES (s0, s1);
+q_ff[3..0]:		TFFE;
+press_ff:			DFFE;
+BEGIN
+	%	CLOCK	%
+	ss.clk = clk;
+	q_ff[].clk = clk;
+	press_ff.clk = clk;
+	
+	%	RESET	%
+	IF  rstn == GND THEN
+		ss.reset = VCC;
+		q_ff[].clrn = GND;
+		press_ff.clrn = GND;
+	ELSE
+		ss.reset = GND;
+		q_ff[].clrn = VCC;
+		press_ff.clrn = VCC;
+	END IF;
+	
+	%	ENABLE	%
+	ss.ena = ena;
+	q_ff[].ena = ena;
+	press_ff.ena = ena;
+	
+	CASE ss IS
+	WHEN s0 =>
+		IF valid_press[] != 0 THEN
+			press_ff.d = VCC;
+			q_ff[].t = valid_press[];
+			ss = s1;
+		END IF;
+	WHEN s1 =>
+		q_ff[].t = 0;
+		press_ff.d = GND;
+   END CASE;
+	
+	press = press_ff.q;
+	q[] = q_ff[].q;
+
+
+END;

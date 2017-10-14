@@ -1,0 +1,41 @@
+INCLUDE "quiz_matrix.inc";
+INCLUDE "quiz_press.inc";
+INCLUDE "block.inc";
+
+SUBDESIGN jogo_quiz
+(
+	clk				:	INPUT;
+	button[3..0]	:	INPUT;
+	valid_time		:	INPUT;
+	rstn				:	INPUT=VCC;
+	primeiro[3..0]	:	OUTPUT;
+	segundo[3..0]	:	OUTPUT;
+	terceiro[3..0]	:	OUTPUT;
+	quarto[3..0]	:	OUTPUT
+)
+
+VARIABLE
+	player[3..0]	:	quiz_press;
+	ordem				:	quiz_matrix;
+	bloq				:	block;
+BEGIN
+	player[].clk = clk;
+	player[].block = bloq.BLOCK;
+	player[].button = button[3..0];
+	player[].valid_time = valid_time;
+	player[].rstn = rstn;
+	
+	bloq.BUTTON[4..1] = button[3..0];
+	bloq.PRESSED[4..1] = player[].pressed;
+	
+	ordem.clk = clk;
+	ordem.valid_press[] = player[].valid_press;
+	ordem.ena = valid_time;
+	ordem.rstn = rstn;
+	
+	primeiro[] 	=	ordem.q0[]; 
+	segundo[] 	=	ordem.q1[];
+	terceiro[] 	=	ordem.q2[];
+	quarto[] 	=	ordem.q3[];
+END;
+

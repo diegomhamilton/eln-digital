@@ -1,0 +1,90 @@
+INCLUDE "lpm_counter.inc";
+
+SUBDESIGN updown
+(
+	ena, clk		:	INPUT;
+	rstn					:	INPUT=VCC;
+	q[3..0]				:	OUTPUT;
+	timeup[1..0]		:	OUTPUT
+)
+
+VARIABLE
+	div_freq_tff	:	TFFE;		
+	div_freq			:	lpm_counter WITH (LPM_WIDTH=25, LPM_MODULUS=25000000);
+	updown_counter	: 	lpm_counter WITH (LPM_WIDTH=4, LPM_MODULUS=10, LPM_PORT_UPDOWN="PORT_USED");
+	is0				:	NODE;
+	clk_div			:	NODE;
+	ss: MACHINE WITH STATES (s0, s1, s2, s3);
+	
+BEGIN
+	IF (rstn == GND) THEN
+		div_freq_tff.clrn = GND;
+		div_freq.aclr = VCC;
+		updown_counter.aclr = VCC;
+		ss.reset = VCC;
+	ELSE
+		div_freq_tff.clrn = VCC;
+		div_freq.aclr = GND;
+		updown_counter.aclr = GND;
+		ss.reset = GND;
+	END IF;
+	
+	div_freq_tff.ena = ena;
+	div_freq.cnt_en = ena;
+	updown_counter.cnt_en = ena;
+	
+	is0 = LCELL(updown_counter.q[] == 0);
+	
+	div_freq.clock = clk;
+	
+	div_freq.cnt_en = VCC;
+	
+	div_freq_tff.t = VCC;
+	div_freq_tff.clk = div_freq.cout;
+	clk_div = div_freq_tff.q;
+	
+	q[3] = LCELL(updown_counter.q[3]);
+	q[2] = LCELL(updown_counter.q[2]);
+	q[1] = LCELL(updown_counter.q[1]);
+	q[0] = LCELL(updown_counter.q[0]);
+	updown_counter.clock = clk_div;
+
+	
+   ss.clk = clk_div;
+   CASE ss IS
+      WHEN s0 =>
+			updown_counter.updown = VCC;
+			timeup[0] = GND;
+			timeup[1] = GND;
+         IF LCELL(is0) THEN
+				ss = s1;
+			ELSE
+				ss = s0;
+         END IF;
+      WHEN s1 =>
+			timeup[0] = GND;
+			timeup[1] = GND;
+         IF LCELL(is0) THEN
+				updown_counter.updown = GND;
+            ss = s2;
+			ELSE
+				updown_counter.updown = VCC;
+				ss = s1;
+         END IF;
+		WHEN s2 =>
+			timeup[0]=VCC;
+			timeup[1]=GND;
+			IF LCELL(is0) THEN
+				updown_counter.updown = VCC;
+            ss = s3;
+			ELSE
+				updown_counter.updown = GND;
+				ss = s2;
+			END IF;
+		WHEN s3 =>
+			updown_counter.updown = VCC;
+			timeup[0] = VCC;
+			timeup[1] = VCC;
+   END CASE;
+	
+END;

@@ -1,0 +1,80 @@
+INCLUDE "quiz_row.inc";
+
+SUBDESIGN quiz_matrix
+(
+	clk					:	INPUT;
+	ena					:	INPUT;
+	rstn					:	INPUT;
+	valid_press[3..0]	:	INPUT;
+	q0[3..0]				:	OUTPUT;
+	q1[3..0]				:	OUTPUT;
+	q2[3..0]				:	OUTPUT;
+	q3[3..0]				:	OUTPUT;
+)
+
+VARIABLE
+	ss	:	MACHINE WITH STATES (s0, s1, s2, s3, s4);
+	player[3..0]	:	quiz_row;
+BEGIN
+	%	CLOCK	%
+	player[].clk = clk;
+	ss.clk = clk;
+	
+	%	RESET	%
+	IF  rstn == GND THEN
+		ss.reset = VCC; 
+		player[].rstn = GND;
+	ELSE
+		ss.reset = GND;
+		player[].rstn = VCC;
+	END IF;
+	
+	%	ENABLE	%
+	player[].ena = ena;
+	
+	CASE ss IS
+		WHEN s0 =>
+			q0[] = 0;
+			q1[] = 0;
+			q2[] = 0;
+			q3[] = 0;
+			IF valid_press[] != 0 THEN
+				player[0].valid_press[] = valid_press[];
+				ss = s1;
+			END IF;
+		WHEN s1 =>
+			q0[] = player[0].q[];
+			q1[] = 0;
+			q2[] = 0;
+			q3[] = 0;
+			IF valid_press[] != 0 and valid_press[] != q0[] THEN
+				player[1].valid_press[] = valid_press[];
+				ss = s2;
+			END IF;
+		WHEN s2 =>
+			q0[] = player[0].q[];
+			q1[] = player[1].q[];
+			q2[] = 0;
+			q3[] = 0;
+			IF valid_press[] != 0  and valid_press[] != q0[] and valid_press[] != q1[] THEN
+				player[2].valid_press[] = valid_press[];
+				ss = s3;
+			END IF;
+		WHEN s3 =>
+			q0[] = player[0].q[];
+			q1[] = player[1].q[];
+			q2[] = player[2].q[];
+			q3[] = 0;
+			IF valid_press[] != 0 and valid_press[] != q0[] and valid_press[] != q1[] and valid_press[] != q2[] THEN
+				player[3].valid_press[] = valid_press[];
+				ss = s4;
+			END IF;
+		WHEN s4 =>
+			q0[] = player[0].q[];
+			q1[] = player[1].q[];
+			q2[] = player[2].q[];
+			q3[] = player[3].q[];
+   END CASE;
+	
+
+END;
