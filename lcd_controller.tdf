@@ -1,0 +1,193 @@
+INCLUDE "lpm_counter.inc";
+
+SUBDESIGN lcd_controller
+(
+	clk				: INPUT;
+	reset_n			: INPUT;
+	lcd_enable		: INPUT;
+	lcd_bus[9..0]	: INPUT;
+	busy			: OUTPUT;
+	rs, rw, e		: OUTPUT;
+	lcd_data[7..0]	: OUTPUT;
+)
+
+VARIABLE 
+	
+	control: MACHINE WITH STATES (power_up, initialize, ready, send);
+	init: MACHINE WITH STATES (function_set, sleep1, dpy_control, sleep2, dpy_clear, sleep3, entry_mode, end_init);
+	ena: MACHINE WITH STATES (ena0, ena1, ena2);
+	
+	counter: lpm_counter WITH (LPM_WIDTH=22, LPM_MODULUS=2500000); %50ms%
+	
+BEGIN	
+
+	%CLOCK%
+	control.(clk, reset) = (clk, !reset_n);
+	init.(clk, reset) = (clk, !reset_n);
+	ena.(clk, reset) = (clk, !reset_n);
+	
+	counter.clock = clk;
+	counter.aclr = !reset_n;
+	
+	CASE control IS	
+		
+		WHEN power_up => %50ms%
+			busy = VCC;
+			IF !counter.cout THEN
+				control = power_up;
+			ELSE
+				rs = GND;
+				rw = GND;
+				lcd_data[] = B"00110000";
+				counter.data[] = (2500000-500);
+				counter.sload = VCC;
+				control = initialize;
+			END IF;
+		
+		WHEN initialize =>
+			busy = VCC;
+			CASE init IS
+				WHEN function_set => %10us%
+					IF !counter.cout THEN
+						lcd_data[] = B"00111100";
+						e = VCC;
+						init = function_set;
+					ELSE
+						counter.data[] = (2500000-2500);
+						counter.sload = VCC;
+						init = sleep1;
+					END IF;
+					control = initialize;
+				WHEN sleep1 => %50us%
+					IF !counter.cout THEN
+						lcd_data[] = B"00000000";
+						e = GND;
+						init = sleep1;
+					ELSE
+						counter.data[] = (2500000-500);
+						counter.sload = VCC;
+						init = dpy_control;
+					END IF;
+					control = initialize;
+				WHEN dpy_control => %10us%
+					IF !counter.cout THEN
+						lcd_data[] = B"00001100";
+						e = VCC;
+						init = dpy_control;
+					ELSE
+						counter.data[] = (2500000-2500);
+						counter.sload = VCC;
+						init = sleep2;
+					END IF;
+					control = initialize;
+				WHEN sleep2 => %50us%
+					IF !counter.cout THEN
+						lcd_data[] = B"00000000";
+						e = GND;
+						init = sleep2;
+					ELSE
+						counter.data[] = (2500000-500);
+						counter.sload = VCC;
+						init = dpy_clear;
+					END IF;
+					control = initialize;
+				WHEN dpy_clear => %10us%
+					IF !counter.cout THEN
+						lcd_data[] = B"00000001";
+						e = VCC;
+						init = dpy_clear;
+					ELSE
+						counter.data[] = (2500000-100000);
+						counter.sload = VCC;
+						init = sleep3;
+					END IF;
+					control = initialize;
+				WHEN sleep3 => %2ms%
+					IF !counter.cout THEN
+						lcd_data[] = B"00000000";
+						e = GND;
+						init = sleep3;
+					ELSE
+						counter.data[] = (2500000-500);
+						counter.sload = VCC;
+						init = entry_mode;
+					END IF;
+					control = initialize;
+				WHEN entry_mode => %10us%
+					IF !counter.cout THEN
+						lcd_data[] = B"00000110";
+						e = VCC;
+						init = entry_mode;
+					ELSE
+						counter.data[] = (2500000-3000);
+						counter.sload = VCC;
+						init = end_init;
+					END IF;
+					control = initialize;
+				WHEN end_init => %60us%
+					IF !counter.cout THEN
+						lcd_data[] = B"00000000";
+						e = GND;
+						init = end_init;
+						control = initialize;
+					ELSE
+						control = ready;
+					END IF;
+			END CASE;
+	
+		
+		WHEN ready =>
+			IF (lcd_enable == VCC) THEN
+				busy = VCC;
+				counter.data[] = (2500000-50);
+				counter.sload = VCC;          
+				control = send;
+			ELSE
+				busy = GND;
+				rs = GND;
+				rw = GND;
+				lcd_data[] = B"00000000";
+				control = ready;
+			END IF;
+			
+		WHEN send =>
+			busy = VCC;
+			rs = lcd_bus[9];
+			rw = lcd_bus[8];
+			lcd_data[] = lcd_bus[7..0]; 
+			CASE ena IS
+				WHEN ena0 =>
+					IF !counter.cout THEN
+						e = GND;
+						ena = ena0;
+					ELSE
+						counter.data[] = (2500000-650);
+						counter.sload = VCC;
+						ena = ena1;
+					END IF;
+					control = send;
+				WHEN ena1 =>
+					IF !counter.cout THEN
+						e = VCC;
+						ena = ena1;
+					ELSE
+						counter.data[] = (2500000-1800);
+						counter.sload = VCC;
+						ena = ena2;
+					END IF;
+					control = send;
+				WHEN ena2 =>
+					IF !counter.cout THEN
+						e = GND;
+						ena = ena2;
+						control = send;
+					ELSE
+						ena = ena0;
+						control = ready;
+					END IF;
+			
+			END CASE;
+			
+	END CASE;
+	
+END;

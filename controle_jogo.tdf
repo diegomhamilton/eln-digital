@@ -2,11 +2,15 @@ INCLUDE "updown.inc";
 INCLUDE "jogo_quiz.inc";
 INCLUDE "debounce.inc";
 INCLUDE "edge_detector.inc";
+INCLUDE "lcd_interface.inc";
 
 SUBDESIGN controle_jogo
 (
+	start_sw       :  INPUT;
 	clk				:	INPUT;
 	button[3..0]	:	INPUT;
+	rw, rs, e 		:	OUTPUT;  --read/write, setup/data, and enable for lcd 
+	lcd_data[7..0] :  OUTPUT;  --data signals for lcd
 	out[3..0]		:	OUTPUT;
 	state[2..0]		:	OUTPUT;
 	pressed[3..0]	:	OUTPUT
@@ -18,10 +22,12 @@ VARIABLE
 	jogo					:	jogo_quiz;
 	rising_edge[1..0]	:	edge_detector;
 	deb[3..0]			:	debounce;
+	interface			:	lcd_interface;
 	deb_button[3..0]	:	NODE;
 	contagem[3..0]		:	NODE;
 
 BEGIN
+	interface.clk = clk;
 	rising_edge[].clk = clk;
 	ss.clk = clk;
 	contador.clk = clk;
@@ -33,6 +39,11 @@ BEGIN
 	
 	rising_edge[0].signal = deb_button[0];
 	rising_edge[1].signal = deb_button[1];
+	
+	rw = interface.rw;
+	rs = interface.rs;
+	e = interface.e;
+	lcd_data[] = interface.lcd_data[];
 	
 	FOR i IN 0 TO 3 GENERATE
       contagem[i] = LCELL(contador.q[i]);
@@ -51,6 +62,10 @@ BEGIN
 			contador.rstn = VCC;
 			ss.reset = GND;
 			
+			interface.number[] = contagem[];
+			interface.player = GND;
+			interface.timeup = GND;
+			
 			IF contador.timeup[0] == VCC AND contador.timeup[1] == GND THEN
 				ss = s1;
 			END IF;
@@ -67,6 +82,10 @@ BEGIN
 			contador.rstn = VCC;
 			ss.reset = GND;
 			
+			interface.number[] = contagem[];
+			interface.player = GND;
+			interface.timeup = VCC;
+			
 			IF contador.timeup[1] == VCC AND contador.timeup[0] == VCC THEN
 				ss = s2;
 			END IF;
@@ -78,6 +97,10 @@ BEGIN
 			contador.ena = GND;
 			out[] = jogo.primeiro[];
 			jogo.valid_time = GND;
+			
+			interface.number[] = jogo.primeiro[];
+			interface.player = VCC;
+			interface.timeup = GND;
 			
 			pressed[] = jogo.primeiro[] + jogo.segundo[] + jogo.terceiro[] + jogo.quarto[];
 			
@@ -103,6 +126,10 @@ BEGIN
 			out[] = jogo.segundo[];
 			jogo.valid_time = GND;
 			
+			interface.number[] = jogo.segundo[];
+			interface.player = VCC;
+			interface.timeup = GND;
+			
 			pressed[] = jogo.primeiro[] + jogo.segundo[] + jogo.terceiro[] + jogo.quarto[];
 			
 			IF rising_edge[1].out == VCC THEN
@@ -127,6 +154,10 @@ BEGIN
 			out[] = jogo.terceiro[];
 			jogo.valid_time = GND;
 			
+			interface.number[] = jogo.terceiro[];
+			interface.player = VCC;
+			interface.timeup = GND;
+			
 			pressed[] = jogo.primeiro[] + jogo.segundo[] + jogo.terceiro[] + jogo.quarto[];
 			
 			IF rising_edge[1].out == VCC THEN
@@ -150,6 +181,10 @@ BEGIN
 			contador.ena = GND;
 			out[] = jogo.quarto[];
 			jogo.valid_time = GND;
+			
+			interface.number[] = jogo.quarto[];
+			interface.player = VCC;
+			interface.timeup = GND;
 			
 			pressed[] = jogo.primeiro[] + jogo.segundo[] + jogo.terceiro[] + jogo.quarto[];
 			

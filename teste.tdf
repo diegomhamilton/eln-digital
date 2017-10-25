@@ -1,0 +1,31 @@
+INCLUDE "lpm_counter.inc";
+INCLUDE "quiz_press.inc";
+INCLUDE "block.inc";
+
+SUBDESIGN teste
+(
+	clk					:	INPUT;
+	button[3..0]		:	INPUT;
+	valid_time			:	INPUT;
+	rstn					:	INPUT=VCC;
+	valid_press[3..0]	:	OUTPUT;
+	pressed[3..0]		:	OUTPUT;
+)
+
+VARIABLE
+	press[3..0]	:	quiz_press;
+	blocka		:	block;
+BEGIN
+	% Teste com block e os press, protótipo do game%
+	blocka.BUTTON[4..1] = button[3..0];
+	blocka.PRESSED[4..1] = press[3..0].pressed;
+	
+	press[].block = blocka.BLOCK;
+	press[3..0].button = button[3..0];
+	press[].clk = clk;
+	press[].rstn = rstn;
+	press[].valid_time = VCC;
+	
+	valid_press[] = press[].valid_press;
+	pressed[] = press[].pressed;
+END;

@@ -12,7 +12,7 @@ SUBDESIGN quiz_press
 
 VARIABLE
 	valid_press_dff	:	DFFE;
-	ss: MACHINE WITH STATES (s0, s1, s2, s3);
+	ss: MACHINE WITH STATES (s0, s1);
 	nblock: NODE;
 BEGIN
 	IF (rstn == GND) THEN

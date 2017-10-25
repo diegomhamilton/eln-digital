@@ -1,0 +1,354 @@
+INCLUDE "lpm_counter.inc";
+INCLUDE "lcd_controller.inc";
+
+SUBDESIGN lcd_interface
+(
+	number[3..0]    : INPUT;
+	timeup          : INPUT;
+	player          : INPUT;
+	clk       		 : INPUT;   --system clock
+	rw, rs, e 		 : OUTPUT;  --read/write, setup/data, and enable for lcd 
+	lcd_data[7..0]  : OUTPUT;  --data signals for lcd
+)
+
+VARIABLE
+
+	lcd_enable		: DFF;
+	lcd_bus[9..0]	: DFF;
+	lcd_busy			: DFF;
+	contagem[4..0]	: DFF;
+	select[6..0]	: DFFE;
+	string[319..0]	: NODE;
+	
+	lcd : lcd_controller;
+	
+	ss: MACHINE WITH STATES(s1, s2, s3, s4);
+
+	count_2m	: lpm_counter WITH(LPM_WIDTH = 19, LPM_MODULUS = 100000);
+	count_init	: lpm_counter WITH(LPM_WIDTH = 23, LPM_MODULUS = 5000000); 
+	
+	
+	
+BEGIN
+
+	ss.clk = clk;
+	
+	lcd_bus[].clk = clk;
+	lcd_enable.clk = clk;
+	lcd_busy.clk = clk;
+	select[].(clk, ena) = (clk, VCC);
+	contagem[].clk = clk;
+	
+	lcd.clk = clk;
+	lcd.reset_n = VCC;
+	lcd.lcd_enable = lcd_enable.q;
+	lcd.lcd_bus[] = lcd_bus[].q;
+	
+	lcd_busy.d = lcd.busy;
+	rw = lcd.rw;
+	rs = lcd.rs;
+	e = lcd.e;
+	lcd_data[] = lcd.lcd_data[];
+	
+	count_2m.clock = clk;
+	count_init.clock = clk;
+	
+	
+	
+IF ss == s4 THEN
+	select[].d = select[].q +1;
+ELSE
+	select[].d = select[].q;
+END IF;
+		
+CASE ss IS
+
+		WHEN s1 => 
+			IF count_init.cout == VCC THEN
+				ss = s2;
+			ELSE
+				ss = s1;
+			END IF;
+
+		WHEN s2 =>
+			lcd_enable.d = VCC;
+			count_2m.data[] = 0;
+			count_2m.sload = VCC;
+			ss = s3;
+			
+		WHEN s3 =>
+			lcd_enable.d = GND;
+			IF !count_2m.cout == VCC THEN
+				CASE select[].q IS		
+					WHEN 0=>
+						lcd_bus[].d = string[9..0];
+						ss = s3;
+					WHEN 1=>
+						lcd_bus[].d = string[19..10];
+						ss = s3;
+					WHEN 2=>
+						lcd_bus[].d = string[29..20];
+						ss = s3;
+					WHEN 3=>
+						lcd_bus[].d = string[39..30];
+						ss = s3;
+					WHEN 4=>
+						lcd_bus[].d = string[49..40];
+						ss = s3;
+					WHEN 5=>
+						lcd_bus[].d = string[59..50];
+						ss = s3;
+					WHEN 6=>
+						lcd_bus[].d = string[69..60];
+						ss = s3;
+					WHEN 7=>
+						lcd_bus[].d = string[79..70];
+						ss = s3;
+					WHEN 8=>
+						lcd_bus[].d = string[89..80];
+						ss = s3;
+					WHEN 9=>
+						lcd_bus[].d = string[99..90];
+						ss = s3;
+					WHEN 10=>
+						lcd_bus[].d = string[109..100];
+						ss = s3;
+					WHEN 11=>
+						lcd_bus[].d = string[119..110];
+						ss = s3;
+					WHEN 12=>
+						lcd_bus[].d = string[129..120];
+						ss = s3;
+					WHEN 13=>
+						lcd_bus[].d = string[139..130];
+						ss = s3;
+					WHEN 14=>
+						lcd_bus[].d = string[149..140];
+						ss = s3;
+					WHEN 15=>
+						lcd_bus[].d = string[159..150];
+						ss = s3;
+					WHEN 16=>
+						lcd_bus[].d = B"0011000000"; -- pula linha
+						ss = s3;
+					WHEN 17=>
+						lcd_bus[].d = string[169..160];
+						ss = s3;
+					WHEN 18 =>
+						lcd_bus[].d = string[179..170];
+						ss = s3;
+					WHEN 19=>
+						lcd_bus[].d = string[189..180];
+						ss = s3;
+					WHEN 20=>
+						lcd_bus[].d = string[199..190];
+						ss = s3;
+					WHEN 21=>
+						lcd_bus[].d = string[209..200];
+						ss = s3;
+					WHEN 22=>
+						lcd_bus[].d = string[219..210];
+						ss = s3;
+					WHEN 23=>
+						lcd_bus[].d = string[229..220];
+						ss = s3;
+					WHEN 24=>
+						lcd_bus[].d = string[239..230];
+						ss = s3;
+					WHEN 25=>
+						lcd_bus[].d = string[249..240];
+						ss = s3;
+					WHEN 26=>
+						lcd_bus[].d = string[259..250];
+						ss = s3;
+					WHEN 27=>
+						lcd_bus[].d = string[269..260];
+						ss = s3;
+					WHEN 28=>
+						lcd_bus[].d = string[279..270];
+						ss = s3;
+					WHEN 29=>
+						lcd_bus[].d = string[289..280];
+						ss = s3;
+					WHEN 30=>
+						lcd_bus[].d = string[299..290];
+						ss = s3;
+					WHEN 31=>
+						lcd_bus[].d = string[309..300];
+						ss = s3;
+					WHEN 32=>
+						lcd_bus[].d = string[319..310];
+						ss = s3;
+					WHEN OTHERS=>
+						lcd_bus[].d = B"0000000010"; -- limpa display
+						ss = s3;
+				END CASE;
+			
+			ELSE
+				ss = s4;
+			END IF;
+		
+		WHEN s4 =>
+			ss = s2;
+			
+			
+END CASE;
+
+
+IF player == GND THEN
+	TABLE
+			number[] 	=> string[99..90];
+			0 				=> B"1000110000";
+			1 				=> B"1000110001";
+			2 				=> B"1000110010";
+			3 				=> B"1000110011";
+			4 				=> B"1000110100";
+			5 				=> B"1000110101";
+			6 				=> B"1000110110";
+			7 				=> B"1000110111";
+			8 				=> B"1000111000";
+			9 				=> B"1000111001";
+	END TABLE;
+	
+	string[9..0] = B"1001000011";
+	string[19..10] = B"1001101111";
+	string[29..20] = B"1001101110";
+	string[39..30] = B"1001110100";
+	string[49..40] = B"1001100001";
+	string[59..50] = B"1001100111";
+	string[69..60] = B"1001100101";
+	string[79..70] = B"1001101101";
+	string[89..80] = B"1000111010";
+	--string[99..90] = B"1000100000"; 
+	string[109..100] = B"1000100000";
+	string[119..110] = B"1000100000";
+	string[129..120] = B"1000100000";
+	string[139..130] = B"1000100000";
+	string[149..140] = B"1000100000";
+	string[159..150] = B"1000100000";
+	
+	IF timeup == GND THEN
+		string[169..160] = B"1000100000";
+		string[179..170] = B"1000100000";
+		string[189..180] = B"1000100000";
+		string[199..190] = B"1000100000";
+		string[209..200] = B"1000100000";
+		string[219..210] = B"1000100000";
+		string[229..220] = B"1000100000";
+		string[239..230] = B"1000100000";
+		string[249..240] = B"1000100000";
+		string[259..250] = B"1000100000"; 
+		string[269..260] = B"1000100000";
+		string[279..270] = B"1000100000";
+		string[289..280] = B"1000100000";
+		string[299..290] = B"1000100000";
+		string[309..300] = B"1000100000";
+		string[319..310] = B"1000100000";
+	ELSE
+		string[169..160] = B"1001010000";
+		string[179..170] = B"1001110010";
+		string[189..180] = B"1001100101";
+		string[199..190] = B"1001110011";
+		string[209..200] = B"1001110011";
+		string[219..210] = B"1001101001";
+		string[229..220] = B"1001101111";
+		string[239..230] = B"1001101110";
+		string[249..240] = B"1001100101";
+		string[259..250] = B"1001101101"; 
+		string[269..260] = B"1000100001";
+		string[279..270] = B"1000100000";
+		string[289..280] = B"1000100000";
+		string[299..290] = B"1000100000";
+		string[309..300] = B"1000100000";
+		string[319..310] = B"1000100000";
+	END IF;
+	
+ELSE
+
+	IF number[] == 0 THEN
+		string[9..0] = B"1001001110";
+		string[19..10] = B"1001100001";
+		string[29..20] = B"1001101111";
+		string[39..30] = B"1000100000";
+		string[49..40] = B"1001110000";
+		string[59..50] = B"1001110010";
+		string[69..60] = B"1001100101";
+		string[79..70] = B"1001110011";
+		string[89..80] = B"1001110011";
+		string[99..90] = B"1001101001"; 
+		string[109..100] = B"1001101111";
+		string[119..110] = B"1001101110";
+		string[129..120] = B"1001100001";
+		string[139..130] = B"1001100100";
+		string[149..140] = B"1001101111";
+		string[159..150] = B"1000100000";
+		string[169..160] = B"1000100000";
+		string[179..170] = B"1000100000";
+		string[189..180] = B"1000100000";
+		string[199..190] = B"1000100000";
+		string[209..200] = B"1000100000";
+		string[219..210] = B"1000100000";
+		string[229..220] = B"1000100000";
+		string[239..230] = B"1000100000";
+		string[249..240] = B"1000100000";
+		string[259..250] = B"1000100000"; 
+		string[269..260] = B"1000100000";
+		string[279..270] = B"1000100000";
+		string[289..280] = B"1000100000";
+		string[299..290] = B"1000100000";
+		string[309..300] = B"1000100000";
+		string[319..310] = B"1000100000";
+	ELSE
+		TABLE
+			number[]	=>	string[89..80];
+			1			=>	B"1000110001";
+			2			=>	B"1000110010";
+			4			=>	B"1000110011";
+			8			=>	B"1000110100";
+		END TABLE;
+		string[9..0] = B"1001001010";
+		string[19..10] = B"1001101111";
+		string[29..20] = B"1001100111";
+		string[39..30] = B"1001100001";
+		string[49..40] = B"1001100100";
+		string[59..50] = B"1001101111";
+		string[69..60] = B"1001110010";
+		string[79..70] = B"1000111010";
+		--string[89..80] = B"1000100000";
+		string[99..90] = B"1000100000";	
+		string[109..100] = B"1000100000";
+		string[119..110] = B"1000100000";
+		string[129..120] = B"1000100000";
+		string[139..130] = B"1000100000";
+		string[149..140] = B"1000100000";
+		string[159..150] = B"1000100000";
+		string[169..160] = B"1000100000";
+		string[179..170] = B"1000100000";
+		string[189..180] = B"1000100000";
+		string[199..190] = B"1000100000";
+		string[209..200] = B"1000100000";
+		string[219..210] = B"1000100000";
+		string[229..220] = B"1000100000";
+		string[239..230] = B"1000100000";
+		string[249..240] = B"1000100000";
+		string[259..250] = B"1000100000"; 
+		string[269..260] = B"1000100000";
+		string[279..270] = B"1000100000";
+		string[289..280] = B"1000100000";
+		string[299..290] = B"1000100000";
+		string[309..300] = B"1000100000";
+		string[319..310] = B"1000100000";
+	END IF;
+END IF;
+	
+END;
+
+
+
+
+
+
+
+
+
+

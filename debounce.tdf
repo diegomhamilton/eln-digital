@@ -1,0 +1,26 @@
+INCLUDE "lpm_counter.inc";
+
+SUBDESIGN debounce
+(
+	button, clk			:	INPUT;
+	result				:	OUTPUT;
+)
+
+VARIABLE
+	div_freq		:	lpm_counter WITH (LPM_WIDTH=18, LPM_MODULUS=262144);
+	div_freq_tff:	TFF;
+	clk_div		:	NODE;
+	
+	debounce_dff:	DFF;
+BEGIN
+	div_freq.clock = clk;
+	div_freq.cnt_en = VCC;
+	
+	div_freq_tff.t = VCC;
+	div_freq_tff.clk = div_freq.cout;
+	clk_div = div_freq_tff.q;
+	
+	debounce_dff.d	= button;
+	debounce_dff.clk = clk_div;
+	result = debounce_dff.q;
+END;
