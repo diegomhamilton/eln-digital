@@ -5,12 +5,12 @@ use ieee.std_logic_unsigned.all;
 
 entity ranking is
 	port (
---		no1 : out std_logic_vector(29 downto 0);--////////////////////////////////////////////
---		no2 : out std_logic_vector(29 downto 0);--////////////////////////////////////////////
---		no3 : out std_logic_vector(29 downto 0);--///////////DEBUG////////////////////////////
---		to1 : out std_logic_vector(9 downto 0);	--/////////////////DEBUG//////////////////////
---		to2 : out std_logic_vector(9 downto 0);	--///////////////////////DEBUG////////////////
---		to3 : out std_logic_vector(9 downto 0); --////////////////////////////////////////////
+		no1 : out std_logic_vector(29 downto 0);--////////////////////////////////////////////
+		no2 : out std_logic_vector(29 downto 0);--////////////////////////////////////////////
+		no3 : out std_logic_vector(29 downto 0);--///////////DEBUG////////////////////////////
+		to1 : out std_logic_vector(9 downto 0);	--/////////////////DEBUG//////////////////////
+		to2 : out std_logic_vector(9 downto 0);	--///////////////////////DEBUG////////////////
+		to3 : out std_logic_vector(9 downto 0); --////////////////////////////////////////////
 		clk : in std_logic;
 		set : in	std_logic;
 		name : in std_logic_vector(29 downto 0);
@@ -36,7 +36,7 @@ architecture rts of ranking is
 		);	
 	end component;
 	
-	type state_type is (s0, s1, s2, s3);
+	type state_type is (s1, s2, s3);
 	signal ss : state_type;
 	
 	signal count : std_logic_vector(1 downto 0);
@@ -64,10 +64,7 @@ begin
 			n2 := std_logic_vector(to_unsigned(0, n2'length));
 			n3 := std_logic_vector(to_unsigned(0, n3'length));
 		elsif (rising_edge(clk)) then
-			case ss is
-				when s0 =>
-				-- insere novo jogador no ranking
-					if (set = '1') then
+			if (set = '1') then
 						if (tempo < t1) then
 						-- se o jogador fez um tempo menor que o primeiro colocado (default 151), ele é colocado como primeiro
 							t3 := t2;
@@ -89,15 +86,11 @@ begin
 							t3 := to_integer(unsigned(tempo));
 							n3 := name;
 						end if;
-						
-						ss <= s0;
-					else
-						ss <= s1;
 					end if;
 				time1 := "10" & std_logic_vector(to_unsigned(t1, 8));
 				time2 := "10" & std_logic_vector(to_unsigned(t2, 8));
 				time3 := "10" & std_logic_vector(to_unsigned(t3, 8));
-				
+			case ss is
 				when s1 =>
 				-- salva primeiro colocado na ram
 					wadd <= "00";
@@ -115,15 +108,15 @@ begin
 					wadd <= "10";
 					data_in <= n3 & time3;
 					we <= '1';
-					ss <= s0;
+					ss <= s1;
 			end case;
 		end if;
 --	DEBUG SESSION
---	no1 <= n1;
---	no2 <= n2;
---	no3 <= n3;
---	to1 <= time1;
---	to2 <= time2;
---	to3 <= time3;
+	no1 <= n1;
+	no2 <= n2;
+	no3 <= n3;
+	to1 <= time1;
+	to2 <= time2;
+	to3 <= time3;
 	end process;
 end architecture;
