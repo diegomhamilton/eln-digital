@@ -8,16 +8,16 @@ port ( clk : in std_logic; -- processing clock
 	we : in std_logic; -- write enable signal	 
 	wadd : in std_logic_vector(1 downto 0); -- write address to store the data into ram
 	radd : in std_logic_vector(1 downto 0); -- read address to read the data from the ram 
-	data_in : in std_logic_vector(31 downto 0); -- input data to store into ram	
-	data_out : out std_logic_vector(31 downto 0)); -- output data from memory	
+	data_in : in std_logic_vector(39 downto 0); -- input data to store into ram	
+	data_out : out std_logic_vector(39 downto 0)); -- output data from memory	
 end ranking_ram;
 
 architecture Behavioral of ranking_ram is	
 -------------------------------------- RAM declaration 
-type ram is array(2 downto 0) of std_logic_vector(31 downto 0);	
+type ram is array(1 downto 0) of std_logic_vector(39 downto 0);	
 signal ram1_1 : ram;	
 -------------------------------------- Signal declaration 
-signal r_add : std_logic_vector(31 downto 0);	
+signal r_add : std_logic_vector(1 downto 0);	
 begin	
 
 process(clk, we)	 
