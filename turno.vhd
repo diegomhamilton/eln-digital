@@ -9,9 +9,9 @@ entity turno is
 		button3		 :	in std_logic;
 		button4		 :	in std_logic;
 		gabarito		 :	in std_logic_vector(3 downto 0) ;
-		fim_turno	: out std_logic;
-		acerto: out std_logic;
-		tempo: out std_logic_vector(4 downto 0) 
+		fim_turno	 : out std_logic;
+		acerto		 : out std_logic;
+		tempo			 : out std_logic_vector(4 downto 0) 
 	);
 end entity;
 
