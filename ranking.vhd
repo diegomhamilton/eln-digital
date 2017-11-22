@@ -20,19 +20,42 @@ architecture rts of ranking is
 	type state_type is (s1, s2, s3);
 	signal ss : state_type;
 	
-	signal count : std_logic_vector(1 downto 0);
+	signal t1_aux	 : integer range 0 to 151;
+	signal t2_aux	 : integer range 0 to 151;
+	signal t3_aux	 : integer range 0 to 151;	
+	signal time1 	 : std_logic_vector(29 downto 0);
+	signal time2    : std_logic_vector(29 downto 0);
+	signal time3    : std_logic_vector(29 downto 0);
 begin
+	time_conv1: entity work.decoder_3bits port map (
+		clk => clk,
+		numb_input => t1_aux,
+		ascii_output => time1
+	);
+	
+	time_conv2: entity work.decoder_3bits port map (
+		clk => clk,
+		numb_input => t2_aux,
+		ascii_output => time2
+	);
+	
+	time_conv3: entity work.decoder_3bits port map (
+		clk => clk,
+		numb_input => t3_aux,
+		ascii_output => time3
+	);
+
 	process(clk, clear)
 		variable t1 : integer range 0 to 151 := 151;
 		variable t2 : integer range 0 to 151 := 151;
 		variable t3 : integer range 0 to 151 := 151;
-		variable time1 : std_logic_vector(29 downto 0);
-		variable time2 : std_logic_vector(29 downto 0);
-		variable time3 : std_logic_vector(29 downto 0);
 		variable n1 : std_logic_vector(29 downto 0);
 		variable n2 : std_logic_vector(29 downto 0);
 		variable n3 : std_logic_vector(29 downto 0);
 	begin
+		t1_aux <= t1;
+		t2_aux <= t2;
+		t3_aux <= t3;
 		if (clear = '1') then
 			t1 := 151;
 			t2 := 151;
@@ -64,36 +87,27 @@ begin
 							n3 := name;
 						end if;
 					end if;
-				time1 := std_logic_vector(to_unsigned(t1, 30));
-				time2 := std_logic_vector(to_unsigned(t2, 30));
-				time3 := std_logic_vector(to_unsigned(t3, 30));
+			
 			case ss is
 				when s1 =>
 				-- salva primeiro colocado na ram
 					addr_ram <= "00";
-					data_ram <= n1 & time1;
+					data_ram <= time1;
 					we_ram <= '1';
 					ss <= s2;
 				when s2 =>
 				-- salva segundo colocado na ram
 					addr_ram <= "01";
-					data_ram <= n2 & time2;
+					data_ram <= time2;
 					we_ram <= '1';
 					ss <= s3;
 				when s3 =>
 				-- salva terceiro colocado na ram
 					addr_ram <= "10";
-					data_ram <= n3 & time3;
+					data_ram <= time3;
 					we_ram <= '1';
 					ss <= s1;
 			end case;
 		end if;
-----	DEBUG SESSION
---	no1 <= n1;
---	no2 <= n2;
---	no3 <= n3;
---	to1 <= time1;
---	to2 <= time2;
---	to3 <= time3;
 	end process;
 end architecture;
