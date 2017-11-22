@@ -5,14 +5,14 @@ use ieee.std_logic_unsigned.all;
 
 entity name_writer is
 	port (
-	up : in std_logic;
-	down : in std_logic;
-	sel : in std_logic;
-	clk : in std_logic;
-	ena : in	std_logic;
-	rstn : in std_logic;
-	rw, rs, e : out std_logic;
-   lcd_data : out std_logic_vector(7 downto 0)
+		up : in std_logic;
+		down : in std_logic;
+		sel : in std_logic;
+		clk : in std_logic;
+		ena : out std_logic;
+		rstn : in std_logic;
+		finished : out std_logic;
+		lcd_bus : out std_logic_vector(9 downto 0)
 	);
 end entity;
 	
@@ -30,16 +30,6 @@ architecture behavior OF name_Writer is
 	
 	signal char : std_logic_vector(7 downto 0) := "01000001";
 	signal ss : state;
-	component lcd_controller is
-		port(
-			clk        : in  std_logic; --system clock
-			reset_n    : in  std_logic; --active low reinitializes lcd
-			lcd_enable : in  std_logic; --latches data into lcd controller
-			lcd_bus    : in  std_logic_vector(9 downto 0); --data and control signals
-			busy       : out std_logic; --lcd controller busy/idle feedback
-			rw, rs, e  : out std_logic; --read/write, setup/data, and enable for lcd
-			lcd_data   : out std_logic_vector(7 downto 0)); --data signals for lcd
-	end component;
 	
 	component debounce is
 		port(
@@ -79,13 +69,8 @@ begin
 			ss <= init;
 		elsif (rising_edge(clk)) then
 			case ss is
-				when init =>
-					if (lcd_busy = '0' and lcd_enable = '0') then
-						ss <= send;
-					else
-						lcd_enable <= '0';
-					end if;
 				when wait_key =>
+					finished <= '0';
 					lcd_enable <= '0';
 					if (up_edge = '1') then
 						if (c_int = 25 + 65) then
@@ -107,6 +92,7 @@ begin
 						ss <= send;
 					end if;
 				when back =>
+					finished <= '0';
 					if (lcd_busy = '0' and lcd_enable = '0') then
 						lcd_enable <= '1';
 						lcd_bus <= "00000100--";
@@ -115,6 +101,7 @@ begin
 						lcd_enable <= '0';
 					end if;
 				when send =>
+					finished <= '0';
 					if (count = 3) then
 						ss <= full;
 					elsif (lcd_busy = '0' and lcd_enable = '0') then
@@ -125,6 +112,7 @@ begin
 						lcd_enable <= '0';
 					end if;
 				when full =>
+					finished <= '1';
 			end case;
 		end if;
 	end process;
